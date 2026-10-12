@@ -56,6 +56,9 @@ pub fn start() {
             return;
         };
         let q = query();
+        // Auto (the default UI language) follows the browser, or `?lang=` when the page embedding
+        // PhotoCraft knows its user's language better than the browser does.
+        i18n::set_browser_languages(query_param("lang").into_iter().chain(browser_languages()));
         let force_cpu = q.contains("cpu");
         let mut options = eframe::WebOptions::default();
         photocraft_ui_egui::gpu_canvas::use_adapter_limits(&mut options.wgpu_options.wgpu_setup);

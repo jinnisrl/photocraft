@@ -2,9 +2,7 @@
 
 use super::{Lang, lang_from_tag};
 
-#[cfg(not(target_arch = "wasm32"))]
 const MAX_SYSTEM_TAGS: usize = 64;
-#[cfg(not(target_arch = "wasm32"))]
 const MAX_SYSTEM_TAG_BYTES: usize = 128;
 
 /// Resolve Auto against the current registry. Cache the OS's tags, rather than a language,
@@ -26,7 +24,6 @@ fn resolve(tags: &[String]) -> Lang {
     tags.iter().find_map(|tag| lang_from_tag(tag)).unwrap_or(Lang::EN)
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn bounded_tags(tags: impl IntoIterator<Item = String>) -> Vec<String> {
     tags.into_iter()
         .take(MAX_SYSTEM_TAGS)
@@ -52,9 +49,21 @@ fn detect_system_tags() -> Vec<String> {
     std::panic::catch_unwind(|| bounded_tags(sys_locale::get_locales())).unwrap_or_default()
 }
 
+/// The browser's preferred languages, handed over by the web shell before the app starts (this
+/// crate has no access to `navigator`). Without them the web build resolves Auto to English.
+#[cfg(target_arch = "wasm32")]
+static BROWSER_TAGS: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+
+/// Set the web build's "system" languages (`navigator.languages`, most preferred first). Only the
+/// first call counts, and it must come before the UI first resolves Auto.
+#[cfg(target_arch = "wasm32")]
+pub fn set_browser_languages(tags: impl IntoIterator<Item = String>) {
+    let _ = BROWSER_TAGS.set(bounded_tags(tags));
+}
+
 #[cfg(all(not(test), target_arch = "wasm32"))]
 fn detect_system_tags() -> Vec<String> {
-    Vec::new()
+    BROWSER_TAGS.get().cloned().unwrap_or_default()
 }
 
 #[cfg(test)]
