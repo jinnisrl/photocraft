@@ -15,6 +15,20 @@ static site in `photocraft-web-<version>/`:
 
 There is no server-side code. Upload the folder's contents anywhere that serves static files.
 
+## Hosting a modified build (no ArtCraft marks)
+
+The ArtCraft name and marks are not covered by the code license, and a modified PhotoCraft must
+leave them out (`docs/brand/LICENSE-brand.txt`). The `unbranded` feature does that:
+
+```sh
+PHOTOCRAFT_UNBRANDED=1 packaging/web/package.sh
+```
+
+It removes the Discord button (start screen, About dialog, title bar), the ArtCraft entries of the
+Help menu and the ArtCraft links, and the About dialog says in plain text that the build is based
+on PhotoCraft. The app icon is PhotoCraft's own and stays, like the license files and `NOTICE`.
+(`trunk build --features unbranded` is not enough: Trunk takes the features from `index.html`.)
+
 ## Docker
 
 > The Docker recipe (`Dockerfile`, `.dockerignore`, `packaging/web/nginx.conf`) is

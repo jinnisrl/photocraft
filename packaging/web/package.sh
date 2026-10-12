@@ -17,7 +17,22 @@ HERE="$ROOT/packaging/web"
 
 if [[ "${1:-}" != "--skip-build" ]]; then
   command -v trunk >/dev/null || { echo "error: trunk not found (cargo install trunk --locked)" >&2; exit 1; }
-  (cd "$ROOT/apps/photocraft-web" && trunk build --release)
+  if [[ "${PHOTOCRAFT_UNBRANDED:-}" == "1" ]]; then
+    # A build without the ArtCraft marks (README: "Hosting a modified build"). Trunk takes the
+    # Cargo features from index.html and ignores `--features`, so the build starts from a copy
+    # of the page with `unbranded` added to them; the copy goes away afterwards.
+    (
+      cd "$ROOT/apps/photocraft-web"
+      trap 'rm -f index.unbranded.html' EXIT
+      sed 's/data-cargo-features="\([^"]*\)"/data-cargo-features="\1,unbranded"/' index.html >index.unbranded.html
+      grep -q 'data-cargo-features="[^"]*unbranded' index.unbranded.html || { echo "error: could not add the unbranded feature to index.html" >&2; exit 1; }
+      trunk build index.unbranded.html --release
+      # Trunk names the page after the source; some versions write index.html anyway.
+      if [[ -f "$ROOT/dist/web/index.unbranded.html" ]]; then mv "$ROOT/dist/web/index.unbranded.html" "$ROOT/dist/web/index.html"; fi
+    )
+  else
+    (cd "$ROOT/apps/photocraft-web" && trunk build --release)
+  fi
   (cd "$ROOT/apps/photocraft-web-boot" && trunk build --release)
 fi
 
