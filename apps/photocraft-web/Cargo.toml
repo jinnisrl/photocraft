@@ -10,6 +10,9 @@ publish = false
 # Open HEIC/HEIF photos (the optional photocraft-heif crate). Not default so distributors choose
 # it; official builds (CI, packaging/, release) build with `--features heif`.
 heif = ["photocraft-codecs/heif"]
+# `trunk build --release --features unbranded`: a build without the ArtCraft name and community
+# links, for sites that host a modified PhotoCraft (docs/brand/LICENSE-brand.txt).
+unbranded = ["photocraft-ui-egui/unbranded"]
 
 [lints]
 workspace = true

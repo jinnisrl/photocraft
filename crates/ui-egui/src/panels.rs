@@ -623,6 +623,7 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     }
                     // The community Discord, one click away while the bar has room for it
                     // (narrow windows drop it first; it is also Help › Discord).
+                    #[cfg(not(feature = "unbranded"))]
                     if ui.available_width() >= DISCORD_ROOM {
                         let discord = egui::Button::image_and_text(
                             icons::image("message-square", 14.0, t.text_dim),
@@ -697,6 +698,7 @@ pub fn sync_window_title(app: &mut PhotocraftApp, ctx: &egui::Context) {
 /// Minimum space kept between the window title and the menus or controls beside it.
 const TITLE_GAP: f32 = 16.0;
 /// Free room the title bar needs after its other controls to show the Discord button.
+#[cfg(not(feature = "unbranded"))]
 const DISCORD_ROOM: f32 = 120.0;
 /// The workspace switcher's narrowest width, and one 28 pt title-bar icon with its spacing.
 const WORKSPACE_MIN: f32 = 90.0;

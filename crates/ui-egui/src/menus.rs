@@ -91,8 +91,11 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("window.theme.breezeDark", "Breeze Dark Theme", &["Window", "Theme"], None),
     ("window.theme.system", "Sync with system", &["Window", "Theme"], None),
     ("edit.search", "Search…", &["Edit"], Some("Cmd+F")),
+    #[cfg(not(feature = "unbranded"))]
     ("help.discord", "Join the ArtCraft Discord…", &["Help"], None),
+    #[cfg(not(feature = "unbranded"))]
     ("help.website", "PhotoCraft Website", &["Help"], None),
+    #[cfg(not(feature = "unbranded"))]
     ("help.artcraftWebsite", "ArtCraft Website", &["Help"], None),
     ("help.github", "PhotoCraft on GitHub", &["Help"], None),
     ("help.reportIssue", "Report an Issue…", &["Help"], None),
