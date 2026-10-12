@@ -14,7 +14,8 @@
 //! URL query flags: `?cpu` forces the CPU canvas path (same as `PHOTOCRAFT_CPU_CANVAS=1`);
 //! `?webgl` forces the WebGL2 backend instead of WebGPU; `?host=parent` (inside an `<iframe>`)
 //! talks to a same-origin parent page instead of downloading: it sends the files to open, picks
-//! where saves go and stores them (`host`).
+//! where saves go and stores them (`host`); `?lang=it` picks the UI language when it is left on
+//! Auto (otherwise the browser's languages decide).
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
