@@ -4,6 +4,11 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+# Leave out the ArtCraft name and community links (docs/brand/LICENSE-brand.txt: modified
+# versions must remove the ArtCraft Marks). For redistributors; official builds keep the default.
+unbranded = ["photocraft-engine/unbranded"]
+
 [lints]
 workspace = true
 

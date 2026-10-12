@@ -8,6 +8,8 @@ license.workspace = true
 workspace = true
 
 [features]
+# Leave the ArtCraft entries out of the Help menu (see photocraft-ui-egui's `unbranded`).
+unbranded = []
 # Real-file corpus tests (opt-in; `cargo xtask test-corpus`). Fail when the corpus is missing.
 corpus = []
 

@@ -773,9 +773,15 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
             ui.label(tl!("PhotoCraft — an open-source, native image editor written in Rust."));
             ui.label(crate::i18n::fmt(tl!("Version {version}"), &[("version", &photocraft_engine::build_info::long_version())]));
             ui.add_space(12.0);
+            // A modified build may still say, in plain text, what it is based on.
+            #[cfg(feature = "unbranded")]
+            ui.weak("Based on PhotoCraft by the ArtCraft team and community.");
             ui.vertical_centered(|ui| {
-                crate::links::discord_button(app, ui, 220.0);
-                ui.add_space(8.0);
+                #[cfg(not(feature = "unbranded"))]
+                {
+                    crate::links::discord_button(app, ui, 220.0);
+                    ui.add_space(8.0);
+                }
                 crate::links::link_row(app, ui);
             });
             ui.add_space(10.0);
