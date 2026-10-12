@@ -92,6 +92,10 @@ echo "$(basename "$WASM"): $wasm_bytes bytes ($((wasm_bytes / 1048576)) MiB), sh
 cp "$HERE/_headers" "$HERE/.htaccess" "$WORK/$NAME/"
 cp "$HERE/README.md" "$WORK/$NAME/HOSTING.md"
 copy_docs "$WORK/$NAME"
+# The attributions travel with the site: a copy hosted elsewhere must keep them (NOTICE).
+for f in NOTICE ATTRIBUTION.md; do
+  if [ -f "$ROOT/$f" ]; then cp "$ROOT/$f" "$WORK/$NAME/"; fi
+done
 # Optional served fonts (README.md › Fonts): PHOTOCRAFT_WEB_FONTS_DIR=<a craft-fonts checkout, or any
 # folder with a fonts/manifest.txt in its format> copies the manifest, every font and licence file
 # it lists into the site, at the same paths. The wasm is unchanged; the app fetches fonts on demand.
