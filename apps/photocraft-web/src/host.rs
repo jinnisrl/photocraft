@@ -43,7 +43,9 @@ pub struct Bridge {
 }
 
 impl Bridge {
-    /// `None` when the page isn't framed (there is no parent to talk to).
+    /// `None` when the page isn't framed (there is no parent to talk to), or when the parent is
+    /// on another origin: messages only go to this origin, so the browser would drop every save
+    /// while the document showed as saved. Saves then download, as unframed (PdfCraft does the same).
     pub fn new() -> Option<Self> {
         let window = web_sys::window()?;
         let parent = window.parent().ok().flatten()?;
@@ -51,6 +53,10 @@ impl Bridge {
             return None;
         }
         let origin = window.location().origin().ok()?;
+        // Reading another origin's location throws, which is `None` too.
+        if parent.location().origin().ok()? != origin {
+            return None;
+        }
         Some(Self { window, parent, origin, pending: Rc::default(), next_id: Rc::default(), reported: Rc::default() })
     }
 
