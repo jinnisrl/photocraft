@@ -212,7 +212,7 @@ fn every_save_dialog_leads_with_its_own_extension() {
     // Record each save dialog's suggested name and cancel it, as the user would.
     let services = Services {
         file_dialog: Some(Box::new(move |request, _parent, reply| {
-            if let FileDialogRequest::Save { suggested } = request {
+            if let FileDialogRequest::Save { suggested, .. } = request {
                 log.borrow_mut().push(suggested);
             }
             reply.send(None);

@@ -588,7 +588,7 @@ fn save_a_copy(app: &mut PhotocraftApp) -> Result<Value, String> {
     // Photoshop (#8080).
     let suggested = format!("{stem}{}.psd", app.session.prefs().file_handling.copy_suffix());
     // The copy is of the document as it was when asked.
-    app.pick_save(&suggested, move |app, path| {
+    app.pick_save_document(&suggested, move |app, path| {
         // An RGB Targa asks for its bits per pixel first, a DDS texture for its compression, and
         // a JPEG for its JPEG Options; the copy is written from the prompt.
         let parked = app.with_document(doc.id, |app| {

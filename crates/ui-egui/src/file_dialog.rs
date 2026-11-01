@@ -30,7 +30,11 @@ pub enum FileDialogRequest {
     /// Which folder to read from. Starts in `initial_dir` when available.
     Folder { initial_dir: Option<String> },
     /// Where to write, starting from `suggested` (a file name, or the document's own path).
-    Save { suggested: String },
+    /// `document` when what gets written is the whole active document (Save, Save As, Save a
+    /// Copy, a whole-image Export As), not a part of it (a layer, several layers, a smart
+    /// object's contents) or something else (presets, a sidecar): an embedding page can then
+    /// tell a new version of its file from an export that only shares its name.
+    Save { suggested: String, document: bool },
 }
 
 /// The user's choice (a cancelled dialog answers `None`).
@@ -148,6 +152,17 @@ impl PhotocraftApp {
     /// (#1826, #1866). A caller's explicit directory is kept. The chosen folder is remembered for
     /// the document the dialog was asked for.
     pub(crate) fn pick_save(&mut self, suggested: &str, then: impl FnOnce(&mut Self, String) -> Result<Value, String> + 'static) -> Result<Value, String> {
+        self.pick_save_for(suggested, false, then)
+    }
+
+    /// [`Self::pick_save`] for a save of the whole active document (`FileDialogRequest::Save`'s
+    /// `document`).
+    pub(crate) fn pick_save_document(&mut self, suggested: &str, then: impl FnOnce(&mut Self, String) -> Result<Value, String> + 'static) -> Result<Value, String> {
+        self.pick_save_for(suggested, true, then)
+    }
+
+    /// [`Self::pick_save`] or [`Self::pick_save_document`], as `document` says.
+    pub(crate) fn pick_save_for(&mut self, suggested: &str, document: bool, then: impl FnOnce(&mut Self, String) -> Result<Value, String> + 'static) -> Result<Value, String> {
         let mut suggested = std::path::PathBuf::from(suggested);
         let doc = self.session.active().map(|d| d.doc.id);
         // Closed documents' folders are no longer needed.
@@ -165,7 +180,7 @@ impl PhotocraftApp {
         // Save As appends the extension of the chosen file type.
         let suggested_ext = suggested.extension().and_then(|e| e.to_str()).map(|e| e.to_ascii_lowercase());
         let ext = suggested_ext.clone();
-        let asked = self.ask_file(FileDialogRequest::Save { suggested: suggested.to_string_lossy().into_owned() }, move |app, answer| match answer {
+        let asked = self.ask_file(FileDialogRequest::Save { suggested: suggested.to_string_lossy().into_owned(), document }, move |app, answer| match answer {
             FileDialogAnswer::SaveTo(path) => {
                 let path = saved_path(app, &path, suggested_ext.as_deref());
                 // The web answers a download name, which has no folder to remember.

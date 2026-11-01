@@ -1046,7 +1046,9 @@ pub fn confirm(app: &mut PhotocraftApp, f: &Map<String, Value>) -> Result<Value,
     let ext = s_fmt(f);
     let suggested = format!("{stem}.{ext}");
     let f = f.clone();
-    app.pick_save(&suggested, move |app, path| {
+    // The whole image, or one of its layers: only the first is the document (#4389).
+    let document = !f.contains_key("__layer");
+    app.pick_save_for(&suggested, document, move |app, path| {
         let r = write_export(app, &doc, &f, &path, &source_profile)?;
         // An action being recorded keeps a whole-document export with its destination and
         // settings (#7207). A layer's export isn't recorded: its layer is this document's.
@@ -1145,7 +1147,7 @@ pub fn quick_export_png(app: &mut PhotocraftApp) -> Result<Value, String> {
         let st = app.session.active().ok_or("no document")?;
         let stem = st.doc.name.rsplit_once('.').map_or(st.doc.name.as_str(), |(a, _)| a);
         let (suggested, doc) = (format!("{stem}.{fmt}"), st.doc.id);
-        return app.pick_save(&suggested, move |app, path| {
+        return app.pick_save_document(&suggested, move |app, path| {
             app.refocus(doc)?;
             quick_export(app, json!({"path": path}))
         });

@@ -7,9 +7,12 @@
 //!   With a `path` (starting with `/`) the document lives at that path, as if read from it: Save
 //!   writes back to it and Save As and Export start in its folder. So the parent can tell its
 //!   own document from one opened from the computer, which never gets the parent's path.
-//! - `photocraft:pick-save` (to the parent): `{ id, name, path }` when Save, Save As or Export
-//!   asks where to save: `name` is the suggested file name (its extension sets the format),
-//!   `path` the whole suggestion, in the document's folder when it has one.
+//! - `photocraft:pick-save` (to the parent): `{ id, name, path, document }` when Save, Save As or
+//!   Export asks where to save: `name` is the suggested file name (its extension sets the format),
+//!   `path` the whole suggestion, in the document's folder when it has one. `document` is `true`
+//!   only when the whole document gets written there (Save, Save As, Save a Copy, a whole-image
+//!   Export As): a layer, or several layers exported at once, carry the document's name too, so
+//!   the name alone can't tell them from a new version of the parent's file.
 //! - `photocraft:picked` (from the parent): `{ id, path }` answers it; a missing or empty `path`
 //!   cancels.
 //! - `photocraft:save` (to the parent): `{ name, bytes }` (a transferred `ArrayBuffer`) for every
@@ -74,7 +77,7 @@ impl Bridge {
         let bridge = self.clone();
         let mut open_dialog = services.file_dialog.take();
         services.file_dialog = Some(Box::new(move |request, frame, reply| match request {
-            FileDialogRequest::Save { suggested } => bridge.ask(&suggested, reply),
+            FileDialogRequest::Save { suggested, document } => bridge.ask(&suggested, document, reply),
             open => match open_dialog.as_mut() {
                 Some(dialog) => dialog(open, frame, reply),
                 None => reply.send(None),
@@ -104,11 +107,11 @@ impl Bridge {
     }
 
     /// Ask the parent where to save; the answer arrives as `photocraft:picked`.
-    fn ask(&self, suggested: &str, reply: FileDialogReply) {
+    fn ask(&self, suggested: &str, document: bool, reply: FileDialogReply) {
         let name = std::path::Path::new(suggested).file_name().map_or_else(|| suggested.to_string(), |n| n.to_string_lossy().to_string());
         let id = self.next_id.get().wrapping_add(1);
         self.next_id.set(id);
-        if self.send(&[("type", "photocraft:pick-save".into()), ("id", id.into()), ("name", name.as_str().into()), ("path", suggested.into())]) {
+        if self.send(&[("type", "photocraft:pick-save".into()), ("id", id.into()), ("name", name.as_str().into()), ("path", suggested.into()), ("document", document.into())]) {
             self.pending.borrow_mut().insert(id, reply);
         } else {
             reply.send(None);

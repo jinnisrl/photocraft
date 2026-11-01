@@ -208,7 +208,7 @@ impl PhotocraftApp {
             }
         };
         let doc = st.doc.id;
-        self.pick_save(&suggested, move |app, path| {
+        self.pick_save_document(&suggested, move |app, path| {
             app.with_document(doc, |app| {
                 let own = app.session.active().and_then(|st| st.path.clone());
                 // Confirming the document's own file: ask first if another app changed it (#6596).

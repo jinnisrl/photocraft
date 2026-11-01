@@ -664,7 +664,7 @@ fn save_as_pdf_browse_fills_the_output_from_a_save_dialog() {
     h.run_steps(3);
     h.get_by_label("Browse…").click();
     h.run_steps(4);
-    assert!(matches!(asked.borrow().as_slice(), [FileDialogRequest::Save { suggested }] if suggested.ends_with("poster.pdf")), "{:?}", asked.borrow());
+    assert!(matches!(asked.borrow().as_slice(), [FileDialogRequest::Save { suggested, .. }] if suggested.ends_with("poster.pdf")), "{:?}", asked.borrow());
     // A name chosen without an extension gets the suggested one.
     assert_eq!(h.state_mut().ui.dialog_mut(id).unwrap().fields["output"], json!(format!("{out}.pdf")));
 }

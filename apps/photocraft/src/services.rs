@@ -232,7 +232,7 @@ fn show_file_dialog(request: FileDialogRequest, parent: Option<&eframe::Frame>, 
             let picked = dialog.pick_folder();
             Box::pin(async move { picked.await.map(|folder| answer_one(folder.path(), true, FileDialogAnswer::FolderTo)) })
         }
-        FileDialogRequest::Save { suggested } => {
+        FileDialogRequest::Save { suggested, .. } => {
             let suggested = netpbm_as_pnm(&suggested);
             let filters = save_filters(&suggested);
             let name = dialog_file_name(&suggested, cfg!(windows));

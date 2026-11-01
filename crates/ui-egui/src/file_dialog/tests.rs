@@ -33,7 +33,7 @@ fn pdn_save_requests_a_native_copy_without_overwriting_the_source() {
     let ctx = egui::Context::default();
     menus::invoke(&mut app, &ctx, "file.save", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/layers.pcraft"));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested == "/pics/layers.pcraft"));
     answer(&open, Some(FileDialogAnswer::SaveTo("/pics/layers.pcraft".into())));
     app.poll_file_dialog(&ctx, None);
     assert_eq!(*written.borrow(), ["/pics/layers.pcraft"]);
@@ -61,7 +61,7 @@ fn layered_flat_source_save_defaults_to_psd_without_overwriting_source() {
         menus::invoke(&mut app, &ctx, command, json!({})).unwrap();
         app.poll_file_dialog(&ctx, None);
         assert!(
-            matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/My image.psd"),
+            matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested == "/pics/My image.psd"),
             "{command}: {:?}",
             open.borrow().first().map(|(r, _)| r.clone())
         );
@@ -81,7 +81,7 @@ fn layered_filename_only_save_defaults_to_psd() {
     let ctx = egui::Context::default();
     menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "My image.psd"));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested == "My image.psd"));
     answer(&open, Some(FileDialogAnswer::SaveTo("My image.psd".into())));
     app.poll_file_dialog(&ctx, None);
     assert_eq!(*written.borrow(), ["My image.psd"]);
@@ -101,7 +101,7 @@ fn save_dialog_preserves_flat_and_existing_layered_format_defaults() {
         let (mut app, open, written) = jpeg_app(Some(path), layered);
         menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap();
         app.poll_file_dialog(&ctx, None);
-        assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == path), "{path}");
+        assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested == path), "{path}");
         answer(&open, None);
         app.poll_file_dialog(&ctx, None);
         assert!(written.borrow().is_empty());
@@ -121,7 +121,7 @@ fn transparent_png_keeps_its_format_until_its_lone_layer_becomes_smart() {
     let ctx = egui::Context::default();
     menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/transparent.PNG"));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested == "/pics/transparent.PNG"));
     answer(&open, None);
     app.poll_file_dialog(&ctx, None);
     app.run("layer.smartObjects.convertToSmartObject", json!({})).unwrap();
@@ -129,7 +129,7 @@ fn transparent_png_keeps_its_format_until_its_lone_layer_becomes_smart() {
     assert!(matches!(app.session.active().unwrap().doc.layers[0].content, photocraft_doc::LayerContent::Smart(_)));
     menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/transparent.psd"));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested == "/pics/transparent.psd"));
     assert!(written.borrow().is_empty());
     answer(&open, None);
     app.poll_file_dialog(&ctx, None);
@@ -461,7 +461,7 @@ fn the_app_keeps_running_while_a_dialog_is_open() {
     assert_eq!(menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap(), json!({"fileDialog": "save"}));
     assert!(open.borrow().is_empty(), "shown at the end of the frame, which has the window to parent it to");
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested.ends_with(".psd")));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested.ends_with(".psd")));
     // Frames go on while the user is in the dialog: nothing is written, commands still run, and
     // a second dialog is refused.
     for _ in 0..3 {
@@ -649,7 +649,7 @@ fn save_and_export_dialogs_start_beside_the_document() {
         app.poll_file_dialog(&ctx, None);
         {
             let held = open.borrow();
-            let (FileDialogRequest::Save { suggested }, _) = &held[0] else { panic!("save dialog expected") };
+            let (FileDialogRequest::Save { suggested, .. }, _) = &held[0] else { panic!("save dialog expected") };
             assert_eq!(std::path::Path::new(suggested).parent(), Some(dir.as_path()), "{command}");
             if command == "file.saveAs" {
                 assert_eq!(std::path::Path::new(suggested), source);
@@ -676,7 +676,7 @@ fn save_dialogs_remember_where_each_document_was_last_saved() {
     let first = app.session.active().unwrap().doc.id;
     app.session.active_mut().unwrap().path = Some("/proj/original.psd".into());
     let suggested = |open: &Open| match &open.borrow()[0].0 {
-        FileDialogRequest::Save { suggested } => suggested.clone(),
+        FileDialogRequest::Save { suggested, .. } => suggested.clone(),
         other => panic!("save dialog expected, got {other:?}"),
     };
     // An export starts beside the document; the user saves it under /renders instead.
@@ -748,7 +748,7 @@ fn save_suggestions_preserve_explicit_directories_and_untitled_names() {
         app.session.active_mut().unwrap().path = document_path.map(str::to_string);
         app.pick_save(suggested, |_, _| Ok(Value::Null)).unwrap();
         app.poll_file_dialog(&ctx, None);
-        assert!(matches!(&open.borrow()[0].0, FileDialogRequest::Save { suggested: actual } if actual == suggested));
+        assert!(matches!(&open.borrow()[0].0, FileDialogRequest::Save { suggested: actual, .. } if actual == suggested));
         answer(&open, None);
         app.poll_file_dialog(&ctx, None);
     }
@@ -1012,7 +1012,7 @@ fn export_contents_suggests_the_contents_file_name() {
     menus::invoke(&mut app, &ctx, "layer.smartObjects.exportContents", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
     assert!(
-        matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "Layer 1.pcraft"),
+        matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested == "Layer 1.pcraft"),
         "{:?}",
         open.borrow().first().map(|(r, _)| r.clone())
     );
@@ -1251,7 +1251,7 @@ fn openraster_save_never_overwrites_what_it_cannot_hold() {
     menus::invoke(&mut app, &ctx, "file.save", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
     assert_eq!(written.borrow().len(), 1, "the .ora is not overwritten");
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/art.psd"), "Save As offers PSD");
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if suggested == "/pics/art.psd"), "Save As offers PSD");
     assert_eq!(app.ui.notices.len(), notices + 1);
     assert!(app.ui.notices.last().unwrap().lines.iter().any(|l| l.contains("adjustment layers")), "{:?}", app.ui.notices.last().unwrap().lines);
     assert!(app.session.active().unwrap().is_dirty(), "the edits are still unsaved");
@@ -1466,7 +1466,7 @@ fn save_a_copy_appends_copy_unless_the_preference_says_not_to() {
         menus::invoke(&mut app, &ctx, "file.saveACopy", json!({})).unwrap();
         app.poll_file_dialog(&ctx, None);
         assert!(
-            matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if *suggested == want),
+            matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if *suggested == want),
             "{off}: {:?}",
             open.borrow().first().map(|(r, _)| r.clone())
         );
@@ -1483,4 +1483,65 @@ fn import_variable_data_sets_menu_asks_for_a_csv_and_imports_it() {
     answer(&open, Some(FileDialogAnswer::Contents("sets.csv".into(), b"headline\nHello\nWorld\n".to_vec())));
     app.poll_file_dialog(&ctx, None);
     assert_eq!(app.session.active().map(|d| d.doc.variables.data_sets.len()), Some(2));
+}
+
+/// Whether a save dialog asks for the whole document (`FileDialogRequest::Save`'s `document`):
+/// Save, Save a Copy and a whole-image Export As do; one layer's or several layers' Export As
+/// don't, though they suggest the document's own name (several layers write the first layer
+/// under it). An embedding page tells a new version of its file from those by this alone.
+#[test]
+fn save_dialogs_say_whether_they_write_the_whole_document() {
+    let (mut app, open, _) = app();
+    app.run("layer.new.layer", json!({})).unwrap();
+    app.run("select.rect", json!({"x": 1, "y": 1, "width": 2, "height": 2})).unwrap();
+    app.run("edit.fill", json!({"color": "#ff0000"})).unwrap();
+    let st = app.session.active_mut().unwrap();
+    st.path = Some("/host/photo".into());
+    std::sync::Arc::make_mut(&mut st.doc).name = "photo".into();
+    let ctx = egui::Context::default();
+    let layers: Vec<_> = app.session.active().unwrap().doc.layers.iter().map(|l| l.id).collect();
+    assert_eq!(layers.len(), 2);
+    let document = |open: &Open| match open.borrow().as_slice() {
+        [(FileDialogRequest::Save { document, .. }, _)] => *document,
+        other => panic!("one save dialog expected, got {}", other.len()),
+    };
+    let export = |extra: Option<(&str, Value)>| {
+        let mut f = serde_json::Map::new();
+        f.insert("format".into(), json!("jpg"));
+        f.insert("scale".into(), json!(100));
+        if let Some((k, v)) = extra {
+            f.insert(k.into(), v);
+        }
+        f
+    };
+
+    menus::invoke(&mut app, &ctx, "file.save", json!({})).unwrap();
+    app.poll_file_dialog(&ctx, None);
+    assert!(document(&open), "Save");
+    answer(&open, None);
+    app.poll_file_dialog(&ctx, None);
+
+    menus::invoke(&mut app, &ctx, "file.saveACopy", json!({})).unwrap();
+    app.poll_file_dialog(&ctx, None);
+    assert!(document(&open), "Save a Copy");
+    answer(&open, None);
+    app.poll_file_dialog(&ctx, None);
+
+    crate::export_dialog::confirm(&mut app, &export(None)).unwrap();
+    app.poll_file_dialog(&ctx, None);
+    assert!(document(&open), "Export As");
+    answer(&open, None);
+    app.poll_file_dialog(&ctx, None);
+
+    crate::export_dialog::confirm(&mut app, &export(Some(("__layer", json!(layers[0].0))))).unwrap();
+    app.poll_file_dialog(&ctx, None);
+    assert!(!document(&open), "one layer's Export As");
+    answer(&open, None);
+    app.poll_file_dialog(&ctx, None);
+
+    let ids: Vec<_> = layers.iter().map(|l| l.0).collect();
+    crate::export_dialog::confirm(&mut app, &export(Some(("__layers", json!(ids))))).unwrap();
+    app.poll_file_dialog(&ctx, None);
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested, .. }, _)] if Path::new(suggested).file_name().is_some_and(|n| n == "photo.jpg")), "the document's name");
+    assert!(!document(&open), "several layers' Export As");
 }

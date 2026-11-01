@@ -233,7 +233,7 @@ fn templates_open_as_new_untitled_documents() {
     app.services.file_dialog = Some(show);
     menus::invoke(&mut app, &ctx, "file.save", json!({})).unwrap();
     answer(&mut app);
-    assert_eq!(*asked.borrow(), [FileDialogRequest::Save { suggested: "Untitled-2.psd".into() }]);
+    assert_eq!(*asked.borrow(), [FileDialogRequest::Save { suggested: "Untitled-2.psd".into(), document: true }]);
     assert!(written.borrow().is_empty());
 }
 
@@ -1156,7 +1156,7 @@ fn a_file_opened_at_a_host_path_is_asked_about_under_it_and_others_are_not() {
     let suggested: Vec<&str> = asked
         .iter()
         .map(|r| match r {
-            FileDialogRequest::Save { suggested } => suggested.as_str(),
+            FileDialogRequest::Save { suggested, .. } => suggested.as_str(),
             other => panic!("expected Save, got {other:?}"),
         })
         .collect();
