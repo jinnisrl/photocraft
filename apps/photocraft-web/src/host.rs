@@ -69,6 +69,10 @@ impl Bridge {
         }));
         let bridge = self.clone();
         services.write = Some(Box::new(move |path: &str, bytes: &[u8]| bridge.post_save(path, bytes)));
+        // The web build marks its writes unconfirmed (a download reports nothing back), which
+        // keeps every save dirty. The parent has the bytes once `post_save` succeeds, as with
+        // PdfCraft's bridge: the save counts, and a failed upload is the parent's to report.
+        services.write_unconfirmed = false;
     }
 
     pub fn post_ready(&self) {
