@@ -1127,3 +1127,40 @@ fn opening_an_open_file_again_shows_its_tab() {
         let _ = std::fs::remove_dir_all(&d);
     }
 }
+
+/// A file a host page sent with its own path (`Services::path_inbox`, the web bridge's
+/// `photocraft:open` with `path`) lives at that path: Save As asks starting from it, so the host
+/// sees its own path in every save of that document. A file opened without one is asked about by
+/// its bare name, so it can never pass for the host's.
+#[test]
+fn a_file_opened_at_a_host_path_is_asked_about_under_it_and_others_are_not() {
+    let (show, asked) = file_dialog::fake(vec![None, None]);
+    let services = Services {
+        import: Some(Box::new(|name: &str, _bytes: &[u8], _opts: &photocraft_io::ImportOptions| {
+            Ok((Document::new(name, Size::new(4, 4), ColorMode::Rgb, SampleType::U8), Vec::new()))
+        })),
+        file_dialog: Some(show),
+        ..Default::default()
+    };
+    let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), services);
+    app.open_bytes_from("photo.png", b"x", Some("/host-mark/photo.png")).unwrap();
+    assert_eq!(app.session.active().unwrap().doc.name, "photo.png");
+    assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/host-mark/photo.png"));
+    let _ = app.save_as(None);
+    answer(&mut app);
+    app.open_bytes("photo.png", b"x").unwrap();
+    assert_eq!(app.session.active().unwrap().path, None, "a file without a host path has none");
+    let _ = app.save_as(None);
+    answer(&mut app);
+    let asked = asked.borrow();
+    let suggested: Vec<&str> = asked
+        .iter()
+        .map(|r| match r {
+            FileDialogRequest::Save { suggested } => suggested.as_str(),
+            other => panic!("expected Save, got {other:?}"),
+        })
+        .collect();
+    assert_eq!(suggested.len(), 2, "{suggested:?}");
+    assert!(suggested[0].starts_with("/host-mark/"), "the host's document is asked about in the host's folder: {suggested:?}");
+    assert!(!suggested[1].contains(['/', '\\']), "the other document has no folder, though named alike: {suggested:?}");
+}

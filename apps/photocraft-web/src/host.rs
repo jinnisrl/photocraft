@@ -2,10 +2,14 @@
 //! PhotoCraft in an `<iframe>` (such as a Nextcloud app). Messages are plain objects with a `type`:
 //!
 //! - `photocraft:ready` (to the parent): `{ version }`, the app is listening; send a file now.
-//! - `photocraft:open` (from the parent): `{ name, bytes }`, bytes an `ArrayBuffer` or
+//! - `photocraft:open` (from the parent): `{ name, bytes, path? }`, bytes an `ArrayBuffer` or
 //!   `Uint8Array`. It arrives like a file picked with File › Open or dropped on the window.
-//! - `photocraft:pick-save` (to the parent): `{ id, name }` when Save, Save As or Export asks
-//!   where to save, with the suggested file name (its extension sets the format).
+//!   With a `path` (starting with `/`) the document lives at that path, as if read from it: Save
+//!   writes back to it and Save As and Export start in its folder. So the parent can tell its
+//!   own document from one opened from the computer, which never gets the parent's path.
+//! - `photocraft:pick-save` (to the parent): `{ id, name, path }` when Save, Save As or Export
+//!   asks where to save: `name` is the suggested file name (its extension sets the format),
+//!   `path` the whole suggestion, in the document's folder when it has one.
 //! - `photocraft:picked` (from the parent): `{ id, path }` answers it; a missing or empty `path`
 //!   cancels.
 //! - `photocraft:save` (to the parent): `{ name, bytes }` (a transferred `ArrayBuffer`) for every
@@ -29,6 +33,7 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen::closure::Closure;
 
 type Inbox = Arc<Mutex<Vec<(String, Vec<u8>)>>>;
+type PathInbox = Arc<Mutex<Vec<(String, Vec<u8>, String)>>>;
 
 #[derive(Clone)]
 pub struct Bridge {
@@ -63,7 +68,9 @@ impl Bridge {
     /// Ask the parent where to save and send it what PhotoCraft writes, and hear files and
     /// answers from it. File › Open keeps the browser's own file picker.
     pub fn connect(&self, services: &mut Services, inbox: Inbox, ctx: egui::Context) {
-        self.listen(inbox, ctx);
+        let path_inbox = PathInbox::default();
+        services.path_inbox = Some(path_inbox.clone());
+        self.listen(inbox, path_inbox, ctx);
         let bridge = self.clone();
         let mut open_dialog = services.file_dialog.take();
         services.file_dialog = Some(Box::new(move |request, frame, reply| match request {
@@ -101,7 +108,7 @@ impl Bridge {
         let name = std::path::Path::new(suggested).file_name().map_or_else(|| suggested.to_string(), |n| n.to_string_lossy().to_string());
         let id = self.next_id.get().wrapping_add(1);
         self.next_id.set(id);
-        if self.send(&[("type", "photocraft:pick-save".into()), ("id", id.into()), ("name", name.as_str().into())]) {
+        if self.send(&[("type", "photocraft:pick-save".into()), ("id", id.into()), ("name", name.as_str().into()), ("path", suggested.into())]) {
             self.pending.borrow_mut().insert(id, reply);
         } else {
             reply.send(None);
@@ -124,7 +131,7 @@ impl Bridge {
             .map_err(|e| e.as_string().unwrap_or_else(|| format!("{e:?}")))
     }
 
-    fn listen(&self, inbox: Inbox, ctx: egui::Context) {
+    fn listen(&self, inbox: Inbox, path_inbox: PathInbox, ctx: egui::Context) {
         let parent = self.parent.clone();
         let origin = self.origin.clone();
         let pending = self.pending.clone();
@@ -137,7 +144,10 @@ impl Bridge {
                 Some("photocraft:open") => {
                     let name = string(&data, "name").filter(|n| !n.trim().is_empty()).unwrap_or_else(|| "Image.png".to_string());
                     let Some(bytes) = bytes(&data) else { return };
-                    inbox.lock().unwrap_or_else(|e| e.into_inner()).push((name, bytes));
+                    match string(&data, "path").filter(|p| p.starts_with('/') && p.len() > 1) {
+                        Some(path) => path_inbox.lock().unwrap_or_else(|e| e.into_inner()).push((name, bytes, path)),
+                        None => inbox.lock().unwrap_or_else(|e| e.into_inner()).push((name, bytes)),
+                    }
                 }
                 Some("photocraft:picked") => {
                     let Some(id) = number(&data, "id") else { return };

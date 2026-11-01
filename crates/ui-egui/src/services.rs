@@ -253,6 +253,9 @@ pub type ClipboardUnreadableFn = Box<dyn Fn() -> bool>;
 /// Shared queue of (file name, bytes) delivered asynchronously.
 pub type Inbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<u8>)>>>;
 
+/// Shared queue of (file name, bytes, path) delivered asynchronously with the path they live at.
+pub type PathInbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<u8>, String)>>>;
+
 /// Read the saved preferences text (`None` when there is none yet).
 pub type LoadTextFn = Box<dyn FnMut() -> Option<String>>;
 
@@ -377,6 +380,10 @@ pub struct Services {
     /// drag-and-drop, routed by [`PhotocraftApp::dropped_on_canvas`]): placed as layers like a
     /// desktop canvas drop (Place Embedded, each in Free Transform).
     pub place_inbox: Option<Inbox>,
+    /// Files delivered asynchronously with the path they live at (a host page's
+    /// `photocraft:open` with a `path`): opened like [`Self::inbox`], but as if read from that
+    /// path, so Save writes back to it and Save As and Export start in its folder.
+    pub path_inbox: Option<PathInbox>,
     /// OS clipboard images: copies go out, screenshots and images from other apps come in.
     pub clipboard_set_image: Option<ClipboardSetFn>,
     pub clipboard_get_image: Option<ClipboardGetFn>,

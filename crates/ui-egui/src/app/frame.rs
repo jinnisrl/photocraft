@@ -95,6 +95,13 @@ impl PhotocraftApp {
                 self.open_failed(&name, &e);
             }
         }
+        let arrived: Vec<(String, Vec<u8>, String)> =
+            self.services.path_inbox.as_ref().map(|q| std::mem::take(&mut *q.lock().unwrap_or_else(|e| e.into_inner()))).unwrap_or_default();
+        for (name, bytes, path) in arrived {
+            if let Err(e) = self.open_bytes_from(&name, &bytes, Some(&path)) {
+                self.open_failed(&name, &e);
+            }
+        }
         // Web drops onto the canvas, read since the last frame: placed below, one at a time.
         let to_place: Vec<(String, Vec<u8>)> =
             self.services.place_inbox.as_ref().map(|q| std::mem::take(&mut *q.lock().unwrap_or_else(|e| e.into_inner()))).unwrap_or_default();
