@@ -1128,10 +1128,10 @@ fn opening_an_open_file_again_shows_its_tab() {
     }
 }
 
-/// A file a host page sent with its own path (`Services::path_inbox`, the web bridge's
-/// `photocraft:open` with `path`) lives at that path: Save As asks starting from it, so the host
-/// sees its own path in every save of that document. A file opened without one is asked about by
-/// its bare name, so it can never pass for the host's.
+/// A file opened at a host page's path (as the bridge's queue opens one, see the next test) lives
+/// at that path: Save As asks starting from it, so the host sees its own path in every save of
+/// that document. A file opened without one is asked about by its bare name, so it can never pass
+/// for the host's.
 #[test]
 fn a_file_opened_at_a_host_path_is_asked_about_under_it_and_others_are_not() {
     let (show, asked) = file_dialog::fake(vec![None, None]);
@@ -1163,4 +1163,29 @@ fn a_file_opened_at_a_host_path_is_asked_about_under_it_and_others_are_not() {
     assert_eq!(suggested.len(), 2, "{suggested:?}");
     assert!(suggested[0].starts_with("/host-mark/"), "the host's document is asked about in the host's folder: {suggested:?}");
     assert!(!suggested[1].contains(['/', '\\']), "the other document has no folder, though named alike: {suggested:?}");
+}
+
+/// The web bridge's queue (`Services::path_inbox`, filled by `photocraft:open` with a `path`): a
+/// file pushed there opens on a following frame, at the path it came with.
+#[test]
+fn a_file_in_the_path_inbox_opens_at_its_path() {
+    let queue = crate::PathInbox::default();
+    let feed = queue.clone();
+    let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
+        PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+        let services = Services {
+            import: Some(Box::new(|name: &str, _bytes: &[u8], _opts: &photocraft_io::ImportOptions| {
+                Ok((Document::new(name, Size::new(4, 4), ColorMode::Rgb, SampleType::U8), Vec::new()))
+            })),
+            path_inbox: Some(feed),
+            ..Default::default()
+        };
+        PhotocraftApp::new(photocraft_engine::Session::new(), services)
+    });
+    queue.lock().unwrap().push(("photo.png".into(), b"x".to_vec(), "/host-mark/photo".into()));
+    h.run_steps(4);
+    assert!(queue.lock().unwrap().is_empty(), "the queue is drained");
+    let st = h.state().session.active().expect("the queued file is open");
+    assert_eq!(st.doc.name, "photo.png");
+    assert_eq!(st.path.as_deref(), Some("/host-mark/photo"));
 }

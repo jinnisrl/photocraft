@@ -9,6 +9,12 @@ impl PhotocraftApp {
     /// the preferences (`fileHandling.recentFiles`), so it survives a restart; `ui.recent_files`
     /// mirrors it for the menus and the Home screen.
     pub fn push_recent(&mut self, path: &str) {
+        // The web can't reopen a recent file (`file.openRecent` is unavailable there): its paths
+        // are download names or a host page's, and the list would only keep file names in the
+        // browser's storage.
+        if cfg!(target_arch = "wasm32") {
+            return;
+        }
         let cap = self.recent_cap();
         let mut r = self.session.prefs().file_handling.recent_files.clone();
         r.retain(|p| p != path);
